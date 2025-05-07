@@ -3,56 +3,45 @@
 # This is the last level of our first season, good luck!
 
 import binascii
-import random
 import secrets
 import hashlib
 import os
 import bcrypt
 
 class Random_generator:
+    # Generates a cryptographically secure random token
+    def generate_token(self, length=8, alphabet="0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"):
+        return ''.join(secrets.choice(alphabet) for _ in range(length))
 
-    # generates a random token
-    def generate_token(self, length=8, alphabet=(
-    '0123456789'
-    'abcdefghijklmnopqrstuvwxyz'
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    )):
-        return ''.join(random.choice(alphabet) for _ in range(length))
-
-    # generates salt
+    # Generates a secure bcrypt salt
     def generate_salt(self, rounds=12):
-        salt = ''.join(str(random.randint(0, 9)) for _ in range(21)) + '.'
-        return f'$2b${rounds}${salt}'.encode()
+        return bcrypt.gensalt(rounds)
 
 class SHA256_hasher:
-
-    # produces the password hash by combining password + salt because hashing
+    # Hashes a password using SHA-256 and bcrypt
     def password_hash(self, password, salt):
-        password = binascii.hexlify(hashlib.sha256(password.encode()).digest())
-        password_hash = bcrypt.hashpw(password, salt)
-        return password_hash.decode('ascii')
+        hashed_pw = hashlib.sha256(password.encode()).digest()
+        return bcrypt.hashpw(hashed_pw, salt).decode('utf-8')
 
-    # verifies that the hashed password reverses to the plain text version on verification
+    # Verifies a hashed password
     def password_verification(self, password, password_hash):
-        password = binascii.hexlify(hashlib.sha256(password.encode()).digest())
-        password_hash = password_hash.encode('ascii')
-        return bcrypt.checkpw(password, password_hash)
+        hashed_pw = hashlib.sha256(password.encode()).digest()
+        return bcrypt.checkpw(hashed_pw, password_hash.encode('utf-8'))
 
 class MD5_hasher:
-
-    # same as above but using a different algorithm to hash which is MD5
+    # Hashes a password using MD5 (⚠️ **MD5 is insecure**)
     def password_hash(self, password):
         return hashlib.md5(password.encode()).hexdigest()
 
+    # Verifies an MD5-hashed password securely
     def password_verification(self, password, password_hash):
-        password = self.password_hash(password)
-        return secrets.compare_digest(password.encode(), password_hash.encode())
+        return secrets.compare_digest(self.password_hash(password), password_hash)
 
-# a collection of sensitive secrets necessary for the software to operate
-PRIVATE_KEY = os.environ.get('PRIVATE_KEY')
-PUBLIC_KEY = os.environ.get('PUBLIC_KEY')
-SECRET_KEY = 'TjWnZr4u7x!A%D*G-KaPdSgVkXp2s5v8'
-PASSWORD_HASHER = 'MD5_hasher'
+# Securely retrieve sensitive keys from environment variables
+PRIVATE_KEY = os.environ.get('PRIVATE_KEY', 'default_private_key')
+PUBLIC_KEY = os.environ.get('PUBLIC_KEY', 'default_public_key')
+SECRET_KEY = os.environ.get('SECRET_KEY', secrets.token_hex(16))  # Generate a secure default secret
+PASSWORD_HASHER = 'SHA256_hasher'  # Using SHA-256 for better security
 
 
 # Contribute new levels to the game in 3 simple steps!
